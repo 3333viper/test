@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Gridiron Physics 3D - Ultimate Edition</title>
+<style>
+:root {
+  --bg: #09120b;
+  --fg: #eef8ee;
+  --panel: rgba(16, 28, 20, 0.88);
+  --ac: #f5c542;
+  --ac-glow: rgba(245, 197, 66, 0.4);
+  --danger: #ef4444;
+  --success: #22c55e;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #050b07;
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  max-width: 520px;
+  max-height: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 9/16;
+  touch-action: none;
+  background: #000;
+  box-shadow: 0 0 35px rgba(0,0,0,0.8);
+}
+
+/* UI Overlay Layer */
+.ui-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+/* Header Scoreboard */
+.scoreboard {
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  pointer-events: auto;
+}
+
+.team-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.team-name {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.team-score {
+  font-size: 22px;
+  font-weight: 900;
+  font-family: 'Impact', sans-serif;
+  color: var(--ac);
+  text-shadow: 0 0 10px var(--ac-glow);
+}
+
+.game-clock-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding: 0 12px;
+}
+
+.down-info {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.field-pos {
+  font-size: 10px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* Action Controls Bar */
+.controls-bar {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+  margin-bottom: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.btn:active, .btn.active {
+  background: var(--ac);
+  color: #000;
+  border-color: var(--ac);
+  transform: translateY(1px);
+  box-shadow: 0 0 15px var(--ac-glow);
+}
+
+/* Touch Action Buttons for Mobile */
+.touch-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.action-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--ac);
+  color: var(--ac);
+  font-weight: 900;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+}
+
+.action-btn:active {
+  transform: scale(0.92);
+  background: var(--ac);
+  color: #000;
+}
+
+.action-btn span {
+  font-size: 9px;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+/* Onscreen Play Calling Modal */
+.modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 10, 6, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  pointer-events: auto;
+  z-index: 10;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: var(--ac);
+  text-transform: uppercase;
+  text-shadow: 0 0 15px var(--ac-glow);
+}
+
+.play-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.play-card {
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.play-card:hover, .play-card:active {
+  border-color: var(--ac);
+  background: rgba(245, 197, 66, 0.1);
+  transform: translateY(-2px);
+}
+
+.play-card-icon {
+  font-size: 28px;
+}
+
+.play-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.play-card-desc {
+  font-size: 10px;
+  opacity: 0.6;
+  text-align: center;
+  line-height: 1.3;
+}
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="c"></canvas>
+
+  <div class="ui-layer">
+    <!-- Top HUD Scoreboard -->
+    <div class="scoreboard">
+      <div class="team-box">
+        <span class="team-name">YOU</span>
+        <span class="team-score" id="score-you">0</span>
+      </div>
+      <div class="game-clock-box">
+        <span class="down-info" id="hud-down">1ST & 10</span>
+        <span class="field-pos" id="hud-pos">BALL ON 25</span>
+      </div>
+      <div class="team-box">
+        <span class="team-name">OPP</span>
+        <span class="team-score" id="score-opp">0</span>
+      </div>
+    </div>
+
+    <!-- Mobile Touch Action Buttons -->
+    <div class="touch-actions" id="touch-controls">
+      <div class="action-btn" id="btn-action-primary">
+        <span id="lbl-act-1">SPACE</span>
+        <strong id="lbl-act-main">JUKE</strong>
+      </div>
+      <div class="action-btn" id="btn-action-secondary">
+        <span>KEY F</span>
+        <strong>ARM</strong>
+      </div>
+    </div>
+
+    <!-- Bottom Controls & Selector -->
+    <div class="controls-bar">
+      <button class="btn" id="btn-play-type">⚡ Pass Play</button>
+      <button class="btn" id="btn-pass-type">🚀 Bullet Pass</button>
+      <button class="btn" id="btn-audio">🔊 SFX ON</button>
+    </div>
+  </div>
+
+  <!-- Interactive Playbook Overlay Modal -->
+  <div class="modal hidden" id="playbook-modal">
+    <div class="modal-title" id="modal-title">CHOOSE YOUR PLAY</div>
+    <div class="play-cards" id="play-cards-container">
+      <!-- Dynamic Play Cards populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   AUDIO SYNTHESIZER (Web Audio API - Zero External Files)
+   ========================================================================== */
+class SoundFx {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+  }
+  
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  playSnap() {
+    if (!this.enabled) return; this.init();
+    const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+    g.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+    osc.connect(g); g.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+  }
+
+  playThrow() {
+    if (!this.enabled) return; this.init();
+    const bufSize = this.ctx.sampleRate * 0.2, buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 800;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+    src.connect(filter); filter.connect(g); g.connect(this.ctx.destination);
+    src.start();
+  }
+
+  playCatch() {
+    if (!this.enabled) return; this.init();
+    const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.5, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+    osc.connect(g); g.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.12);
+  }
+
+  playTackle() {
+    if (!this.enabled) return; this.init();
+    const bufSize = this.ctx.sampleRate * 0.35, buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 400;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.7, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+    src.connect(filter); filter.connect(g); g.connect(this.ctx.destination);
+    src.start();
+  }
+
+  playWhistle() {
+    if (!this.enabled) return; this.init();
+    const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(2400, this.ctx.currentTime);
+    osc.frequency.setValueAtTime(2550, this.ctx.currentTime + 0.08);
+    g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+    osc.connect(g); g.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.4);
+  }
+
+  playCheer() {
+    if (!this.enabled) return; this.init();
+    const bufSize = this.ctx.sampleRate * 1.2, buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1000; filter.Q.value = 0.5;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.01, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.4, this.ctx.currentTime + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.2);
+    src.connect(filter); filter.connect(g); g.connect(this.ctx.destination);
+    src.start();
+  }
+}
+
+const sfx = new SoundFx();
+
+/* ==========================================================================
+   GAME ENGINE & CONSTANTS
+   ========================================================================== */
+const W = 480, H = 720, S = W / 53.3, CX = 26.65, G = 10.7, K = 0.008, DT = 1 / 60, VMAX = 32;
+const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+// Particle System
+class ParticleSystem {
+  constructor() { this.particles = []; }
+  
+  spawnTurf(x, y, z) {
+    for (let i = 0; i < 8; i++) {
+      this.particles.push({
+        x, y, z: z + 0.2,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        vz: Math.random() * 3 + 2,
+        color: Math.random() > 0.5 ? '#3a8e49' : '#1d4d27',
+        size: Math.random() * 2 + 1.5,
+        life: 1.0
+      });
+    }
+  }
+
+  spawnImpact(x, y, z) {
+    for (let i = 0; i < 12; i++) {
+      this.particles.push({
+        x, y, z: z + 0.5,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 8,
+        vz: Math.random() * 5 + 1,
+        color: '#f5c542',
+        size: Math.random() * 3 + 1,
+        life: 1.0
+      });
+    }
+  }
+
+  update(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      p.vz -= G * dt;
+      p.life -= dt * 2.5;
+      if (p.z <= 0 || p.life <= 0) this.particles.splice(i, 1);
+    }
+  }
+}
+const particles = new ParticleSystem();
+
+// Game State
+const state = {
+  score: 0, oppScore: 0, drive: 1, maxDrives: 4, los: 25, first: 35, down: 1,
+  mode: 'pre', msg: '', subMsg: '', timer: 0, camY: 22, wind: { x: 0, y: 0 },
+  loft: 0, flash: 0, juke: 0, jcd: 0, jd: 1, play: 'pass', playRoute: 'slants',
+  stam: 1, tired: false, arm: 0, acd: 0, armHit: 0, def: null,
+  shake: 0, combo: 0
+};
+
+const camera = { x: CX, y: 20, z: 2.2, yaw: 0, targetYaw: 0 }, FOC = 210, HOR = H * 0.44;
+let Entities = {}, acc = 0;
+
+const ptr = { down: false, x: CX, y: 30, px: W / 2, py: H / 2, id: null };
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+const keys = {};
+
+// Helper functions
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function getMovementAxis() {
+  let ax = (keys.d || keys.D ? 1 : 0) - (keys.a || keys.A ? 1 : 0);
+  let ay = (keys.ArrowUp || keys.w || keys.W ? 1 : 0) - (keys.ArrowDown || keys.s || keys.S ? 1 : 0);
+  ax += joy.x; ay += joy.y;
+  const m = Math.hypot(ax, ay);
+  if (m > 1) { ax /= m; ay /= m; }
+  return { x: ax, y: ay };
+}
+
+function moveTowards(obj, tx, ty, speed, dt) {
+  const dx = tx - obj.x, dy = ty - obj.y, dist = Math.hypot(dx, dy);
+  if (dist > 0.01) {
+    const step = Math.min(speed * dt, dist);
+    obj.x += (dx / dist) * step;
+    obj.y += (dy / dist) * step;
+  }
+}
+
+/* ==========================================================================
+   ROUTE GENERATION & FORMATIONS
+   ========================================================================== */
+function createReceiver(x, offsets) {
+  const r = { x, y: state.los, speed: rnd(7.2, 8.2), i: 0, wp: [], caught: false };
+  let cx = x, cy = state.los;
+  for (const o of offsets) {
+    cx = clamp(cx + o[0], 2, 51); cy += o[1];
+    r.wp.push({ x: cx, y: cy });
+  }
+  const last = offsets[offsets.length - 1], norm = Math.hypot(last[0], last[1]) || 1;
+  r.wp.push({ x: clamp(cx + (last[0] / norm) * 40, 2, 51), y: cy + (last[1] / norm) * 40 });
+  return r;
+}
+
+function getRoutePattern(pattern) {
+  if (pattern === 'hailmary') {
+    return [
+      createReceiver(6, [[0, 35]]),
+      createReceiver(47, [[0, 35]]),
+      createReceiver(22, [[0, 35]])
+    ];
+  } else if (pattern === 'out') {
+    return [
+      createReceiver(6, [[0, 10], [-4, 0]]),
+      createReceiver(47, [[0, 10], [4, 0]]),
+      createReceiver(20, [[0, 6], [8, 0]])
+    ];
+  } else { // Slants / Default
+    return [
+      createReceiver(7, [[0, 8], [12, 20]]),
+      createReceiver(46, [[0, 6], [-14, 18]]),
+      createReceiver(20, [[0, 4], [10, 12]])
+    ];
+  }
+}
+
+function setupOffense() {
+  state.stam = 1; state.tired = false;
+  const windAngle = rnd(0, Math.PI * 2), windMag = rnd(1, 7);
+  state.wind = { x: Math.cos(windAngle) * windMag, y: Math.sin(windAngle) * windMag };
+  
+  const los = state.los;
+  Entities = {
+    t: 0, qb: { x: CX, y: los - 4 }, carrier: null, ball: null, land: null,
+    recs: getRoutePattern(state.playRoute),
+    dbs: [], rush: []
+  };
+
+  Entities.dbs = Entities.recs.map(r => ({ x: r.x, y: los + 6, cover: r, speed: rnd(6.5, 7.3) }));
+  Entities.rush = [20, 27, 34].map(x => ({ x, y: los + 1, speed: rnd(3.4, 4.0), rush: 1 }));
+}
+
+function setupDefense() {
+  const d = state.def, los = d.los;
+  state.stam = 1; state.tired = false; state.juke = 0;
+  Entities = {
+    t: 0, def: 1, qt: rnd(2.5, 3.5), tt: rnd(2.0, 3.2), rp: false, carrier: null, ball: null, recs: [], dbs: [], rush: [],
+    qb: { x: CX, y: Math.min(99, los + 6) },
+    me: { x: CX, y: Math.max(-6, los - 1.2) },
+    blk: [CX - 4, CX, CX + 4].map(x => ({ x, y: Math.min(99, los + 1.2) })),
+    tm: [CX - 8, CX + 8].map(x => ({ x, y: Math.max(-6, los - 1.2) }))
+  };
+}
+
+function resetGame() {
+  Object.assign(state, { score: 0, oppScore: 0, drive: 1, los: 25, first: 35, down: 1, mode: 'pre', def: null });
+  setupOffense();
+  updateHUD();
+}
+
+/* ==========================================================================
+   PHYSICS & SIMULATION
+   ========================================================================== */
+function stepBall(b, dt) {
+  const speed = Math.hypot(b.vx, b.vy, b.vz);
+  b.vx += (-K * speed * b.vx + 0.25 * state.wind.x) * dt;
+  b.vy += (-K * speed * b.vy + 0.25 * state.wind.y) * dt;
+  b.vz += (-K * speed * b.vz - G) * dt;
+  b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+}
+
+function simulateTrajectory(v) {
+  const q = getThrower();
+  const b = { x: q.x, y: q.y, z: 2.0, vx: v.vx, vy: v.vy, vz: v.vz }, pts = [];
+  let t = 0;
+  while (t < 5) {
+    stepBall(b, DT); t += DT;
+    if ((t / DT | 0) % 3 === 0) pts.push([b.x, b.y, b.z]);
+    if (b.z <= 0) break;
+  }
+  return { x: b.x, y: b.y, pts };
+}
+
+function calculateThrowVector(tx, ty) {
+  const q = getThrower(), dx = tx - q.x, dy = ty - q.y, dist = Math.hypot(dx, dy);
+  if (dist < 2.5) return null;
+  const angle = state.loft ? 0.68 : 0.24;
+  let v = Math.sqrt(dist * G / Math.sin(2 * angle));
+  v = clamp(v, 12, VMAX);
+  return { vx: (dx / dist) * v * Math.cos(angle), vy: (dy / dist) * v * Math.cos(angle), vz: v * Math.sin(angle) };
+}
+
+function executeThrow() {
+  const v = calculateThrowVector(ptr.x, ptr.y);
+  if (!v) return;
+  const q = getThrower();
+  Entities.tp = q;
+  Entities.land = simulateTrajectory(v);
+  if (state.mode === 'run') Entities.carrier = null;
+  Entities.ball = { x: q.x, y: q.y, z: 2.0, vx: v.vx, vy: v.vy, vz: v.vz, age: 0 };
+  
+  let best = null, minDist = 12;
+  for (const r of Entities.recs) {
+    const d = Math.hypot(r.x - Entities.land.x, r.y - Entities.land.y);
+    if (d < minDist) { minDist = d; best = r; }
+  }
+  if (best) best.target = { x: Entities.land.x, y: Entities.land.y };
+  
+  sfx.playThrow();
+  state.mode = 'flight';
+  acc = 0;
+}
+
+function getThrower() { return state.mode === 'run' && Entities.carrier ? Entities.carrier : Entities.qb; }
+function getCameraFocus() { if (Entities.def) return Entities.me; return state.mode === 'run' || (state.mode === 'dead' && Entities.carrier) ? Entities.carrier : (Entities.tp || Entities.qb); }
+function canThrowPass() { return state.mode === 'play' || (state.mode === 'run' && !!Entities.carrier && Entities.carrier.y <= state.los + 0.3); }
+
+function updateSprint(dt, moving) {
+  const want = (keys.Shift || Math.hypot(joy.x, joy.y) > 0.85) && moving && !state.tired && state.stam > 0;
+  if (want) {
+    state.stam = Math.max(0, state.stam - 0.35 * dt);
+    if (state.stam <= 0) state.tired = true;
+  } else {
+    state.stam = Math.min(1, state.stam + 0.2 * dt);
+    if (state.tired && state.stam > 0.3) state.tired = false;
+  }
+  return want ? 1.48 : 1.0;
+}
+
+function performJuke() {
+  if ((state.mode !== 'run' && state.mode !== 'dplay') || state.jcd > 0) return;
+  if (state.mode === 'dplay') { state.juke = 0.6; state.jcd = 1.3; return; }
+  const cr = Entities.carrier;
+  state.juke = 0.35; state.jcd = 1.3;
+  let nearest = null, minDist = 99;
+  for (const o of Entities.dbs.concat(Entities.rush)) {
+    const d = Math.hypot(o.x - cr.x, o.y - cr.y);
+    if (d < minDist) { minDist = d; nearest = o; }
+  }
+  state.jd = nearest && nearest.x > cr.x ? -1 : 1;
+}
+
+function performStiffArm() {
+  if (state.mode !== 'run' || state.acd > 0 || canThrowPass()) return;
+  state.arm = 0.5; state.acd = 1.2;
+}
+
+function endPlay(type, spot, msg) {
+  state.mode = 'dead'; state.timer = 2.2;
+  sfx.playWhistle();
+  
+  if (type === 'td') {
+    state.score += 7; state.msg = 'TOUCHDOWN!'; state.subMsg = '+7 POINTS';
+    sfx.playCheer();
+    state.drive++;
+    return;
+  }
+  
+  if (type === 'int') {
+    state.msg = 'INTERCEPTED!'; state.subMsg = msg || 'Turnover on Downfield Pass';
+    const spotIn = clamp(Math.round(Entities.ball ? Entities.ball.y : state.los), 5, 95);
+    state.def = { los: spotIn, first: Math.max(0, spotIn - 10), down: 1 };
+    return;
+  }
+
+  const newSpot = type === 'inc' ? state.los : clamp(spot, 1, 99);
+  const gain = Math.round(newSpot - state.los);
+  
+  if (type === 'inc') {
+    state.msg = 'INCOMPLETE'; state.subMsg = msg;
+  } else if (type === 'sack') {
+    state.msg = 'SACKED!'; state.subMsg = `${gain} Yards Lost`;
+    state.shake = 0.3;
+  } else {
+    state.msg = gain >= 0 ? `GAIN OF ${gain} YARDS` : `LOSS OF ${Math.abs(gain)} YARDS`;
+    state.subMsg = msg || '';
+  }
+
+  if (newSpot >= state.first) {
+    state.down = 1; state.first = Math.min(100, newSpot + 10);
+    state.subMsg += ' | FIRST DOWN!';
+  } else {
+    state.down++;
+    if (state.down > 4) {
+      state.msg = 'TURNOVER ON DOWNS';
+      state.drive++;
+      state.def = { los: 100 - newSpot, first: 100 - newSpot + 10, down: 1 };
+    }
+  }
+  state.los = newSpot;
+  updateHUD();
+}
+
+function endDefensePlay(type, yards, msg) {
+  state.mode = 'ddead'; state.timer = 2.2; sfx.playWhistle();
+  const d = state.def;
+  let gain = Math.round(type === 'sack' ? -6 : type === 'comp' ? yards : 0);
+  
+  if (type === 'sack') {
+    state.msg = 'SACK!'; state.subMsg = 'Big loss for offense';
+    sfx.playTackle(); state.shake = 0.4;
+  } else {
+    state.msg = msg || (gain > 0 ? `Offense gained ${gain} yds` : 'Incomplete Pass');
+  }
+
+  d.los = clamp(d.los - gain, 0, 99);
+  if (d.los <= 0.5) {
+    state.oppScore += 7; state.msg = 'OPPONENT TOUCHDOWN'; d.over = 'td';
+    sfx.playCheer();
+  } else if (d.los <= d.first) {
+    d.down = 1; d.first = Math.max(0, d.los - 10);
+    state.subMsg += ' | First Down Offense';
+  } else {
+    d.down++;
+    if (d.down > 4) {
+      d.over = 'downs'; state.msg = 'TURNOVER ON DOWNS!'; state.subMsg = 'Your Ball!';
+    }
+  }
+  updateHUD();
+}
+
+function checkBallCollisions() {
+  const b = Entities.ball; b.age += DT;
+  if (b.z <= 0) { endPlay('inc', 0, 'Hit the turf'); return; }
+  if (b.age < 0.18 || b.z > 2.6) return;
+
+  let best = null, minDist = 1.8;
+  for (const o of Entities.recs.concat(Entities.dbs)) {
+    const d = Math.hypot(o.x - b.x, o.y - b.y);
+    if (d < minDist) { minDist = d; best = o; }
+  }
+  if (!best) return;
+
+  if (best.cover) {
+    if (Math.random() < 0.6) { endPlay('int', 0, 'Picked off by Defender!'); }
+    else { endPlay('inc', 0, 'Pass broken up!'); }
+    return;
+  }
+
+  best.caught = true; Entities.carrier = best;
+  sfx.playCatch(); particles.spawnTurf(best.x, best.y, 0);
+  state.mode = 'run'; state.flash = 1.5;
+}
+
+/* ==========================================================================
+   UPDATE LOOP
+   ========================================================================== */
+function update(dt) {
+  const m = state.mode;
+  if (state.shake > 0) state.shake -= dt;
+
+  if (m === 'play') {
+    Entities.t += dt;
+    const axis = getMovementAxis();
+    let turn = (keys.ArrowRight || keys.e || keys.E ? 1 : 0) - (keys.ArrowLeft || keys.q || keys.Q ? 1 : 0);
+    if (ptr.down) {
+      const offset = (ptr.px - W / 2) / (W / 2);
+      if (Math.abs(offset) > 0.5) turn += Math.sign(offset) * (Math.abs(offset) - 0.5) / 0.5;
+    }
+    camera.yaw = clamp(camera.yaw + turn * 1.8 * dt, -2.0, 2.0);
+
+    const speed = 5.8 * updateSprint(dt, axis.x || axis.y);
+    const sinY = Math.sin(camera.yaw), cosY = Math.cos(camera.yaw);
+    Entities.qb.x = clamp(Entities.qb.x + (sinY * axis.y + cosY * axis.x) * speed * dt, 1, 52.3);
+    Entities.qb.y = Math.max(state.los - 9, Entities.qb.y + (cosY * axis.y - sinY * axis.x) * speed * dt);
+
+    if (Entities.qb.y > state.los + 0.3) {
+      Entities.carrier = Entities.qb; state.mode = 'run'; state.flash = 1.5; return;
+    }
+
+    Entities.recs.forEach(r => {
+      if (r.target) moveTowards(r, r.target.x, r.target.y, r.speed, dt);
+      else {
+        const w = r.wp[r.i];
+        if (w) {
+          moveTowards(r, w.x, w.y, r.speed, dt);
+          if (Math.hypot(w.x - r.x, w.y - r.y) < 0.3 && r.i < r.wp.length - 1) r.i++;
+        }
+      }
+    });
+
+    Entities.dbs.forEach(d => moveTowards(d, d.cover.x, d.cover.y + 2.2, d.speed, dt));
+    for (const o of Entities.rush) {
+      if (Entities.t > 0.2) moveTowards(o, Entities.qb.x, Entities.qb.y, o.speed, dt);
+      if (Math.hypot(o.x - Entities.qb.x, o.y - Entities.qb.y) < 1.25) {
+        sfx.playTackle(); particles.spawnImpact(Entities.qb.x, Entities.qb.y, 1);
+        endPlay('sack', Entities.qb.y);
+      }
+    }
+  } else if (m === 'flight') {
+    Entities.recs.forEach(r => { if (r.target) moveTowards(r, r.target.x, r.target.y, r.speed, dt); });
+    Entities.dbs.forEach(d => {
+      if (Math.hypot(d.x - Entities.land.x, d.y - Entities.land.y) < 12) moveTowards(d, Entities.land.x, Entities.land.y, d.speed, dt);
+      else moveTowards(d, d.cover.x, d.cover.y + 2.2, d.speed, dt);
+    });
+    acc += dt;
+    while (acc >= DT && state.mode === 'flight') {
+      acc -= DT; stepBall(Entities.ball, DT); checkBallCollisions();
+    }
+  } else if (m === 'run') {
+    const cr = Entities.carrier;
+    state.flash -= dt; state.arm = Math.max(0, state.arm - dt);
+    state.acd = Math.max(0, state.acd - dt); state.armHit -= dt;
+
+    const axis = getMovementAxis();
+    let steer = axis.x;
+    if (!steer && ptr.down && !canThrowPass()) steer = clamp((ptr.px - W / 2) / (W / 2), -1, 1);
+    
+    cr.x += steer * 6.5 * dt;
+    if (state.juke > 0) { state.juke -= dt; cr.x += state.jd * 14 * dt; }
+    state.jcd = Math.max(0, state.jcd - dt);
+
+    Entities.t += dt;
+    const forwardSpeed = 8.2 * (axis.y > 0.3 ? 1.12 : axis.y < -0.3 ? 0.82 : 1.0) * updateSprint(dt, true);
+    cr.y += forwardSpeed * dt;
+
+    if (Math.random() < 0.2) particles.spawnTurf(cr.x, cr.y, 0);
+
+    for (const o of Entities.dbs.concat(Entities.rush)) {
+      let speed = o.speed + (o.rush ? 2.5 : 0.4);
+      const dist = Math.hypot(o.x - cr.x, o.y - cr.y);
+
+      if (state.arm > 0 && !(o.stun > 0) && dist < 2.0 && o.y >= cr.y - 0.4) {
+        if (o.shoved === undefined) o.shoved = Math.random() < 0.8 ? 1 : 0;
+        if (o.shoved) {
+          o.stun = 1.2; o.x += (o.x < cr.x ? -1 : 1) * 1.5; state.armHit = 0.9;
+          sfx.playTackle(); particles.spawnImpact(o.x, o.y, 1);
+        }
+      }
+
+      if (o.stun > 0) { o.stun -= dt; speed = 0; if (o.stun <= 0) o.shoved = undefined; }
+      moveTowards(o, cr.x, cr.y + 1.2, speed, dt);
+
+      if (state.mode === 'run' && !(o.stun > 0) && dist < (state.juke > 0 ? 0.5 : 1.2)) {
+        sfx.playTackle(); particles.spawnImpact(cr.x, cr.y, 0.5);
+        endPlay('comp', cr.y, 'Tackled down');
+      }
+    }
+
+    if (state.mode === 'run') {
+      if (cr.y >= 100) endPlay('td', 100);
+      else if (cr.x < 1 || cr.x > 52.3) endPlay('comp', cr.y, 'Stepped Out of Bounds');
+    }
+  } else if (m === 'dplay') {
+    Entities.t += dt;
+    const axis = getMovementAxis(), me = Entities.me;
+    let turn = (keys.ArrowRight || keys.e || keys.E ? 1 : 0) - (keys.ArrowLeft || keys.q || keys.Q ? 1 : 0);
+    camera.yaw = clamp(camera.yaw + turn * 1.8 * dt, -2.0, 2.0);
+
+    let blocked = 0;
+    for (const b of Entities.blk) {
+      if (state.juke <= 0 && Math.hypot(b.x - me.x, b.y - me.y) < 1.6) blocked = 1;
+      moveTowards(b, me.x, me.y, 5.0, dt);
+    }
+    if (state.juke > 0) state.juke -= dt;
+    state.jcd = Math.max(0, state.jcd - dt);
+
+    const speed = 6.5 * updateSprint(dt, axis.x || axis.y) * (blocked ? 0.35 : 1.0) * (state.juke > 0 ? 1.4 : 1.0);
+    const sinY = Math.sin(camera.yaw), cosY = Math.cos(camera.yaw);
+    me.x = clamp(me.x + (sinY * axis.y + cosY * axis.x) * speed * dt, 1, 52.3);
+    me.y = clamp(me.y + (cosY * axis.y - sinY * axis.x) * speed * dt, -8, 99);
+
+    const target = Entities.rp ? Entities.rb : Entities.qb;
+    Entities.tm.forEach(o => moveTowards(o, target.x, target.y, 4.6, dt));
+
+    if (Entities.rp) {
+      const rb = Entities.rb; moveTowards(rb, clamp(rb.x + (rb.x > me.x ? 2 : -2), 2, 51), rb.y - 8, Entities.t > 0.5 ? 7.0 : 2.5, dt);
+      if (Math.hypot(rb.x - me.x, rb.y - me.y) < 1.4) endDefensePlay('comp', state.def.los - rb.y, 'Tackled for Loss!');
+      else if (rb.y <= 0) endDefensePlay('comp', state.def.los, 'Touchdown Run!');
+    } else {
+      const distQb = Math.hypot(Entities.qb.x - me.x, Entities.qb.y - me.y);
+      if (distQb < 1.4) endDefensePlay('sack');
+      else if (Entities.t > Entities.qt) {
+        if (Math.random() < 0.45) endDefensePlay('comp', rnd(6, 18), 'Completed Pass');
+        else endDefensePlay('inc', 0, 'Incomplete Pass');
+      }
+    }
+  } else if (m === 'dead' || m === 'ddead') {
+    state.timer -= dt;
+    if (state.timer <= 0) {
+      if (m === 'ddead') {
+        const d = state.def;
+        if (d.over) {
+          state.def = null;
+          if (state.drive > state.maxDrives) { state.mode = 'over'; return; }
+          state.los = d.over === 'td' ? 25 : clamp(Math.round(d.los), 5, 90);
+          state.first = Math.min(100, state.los + 10); state.down = 1;
+          showPlaybook();
+        } else {
+          setupDefense(); state.mode = 'dpre';
+        }
+      } else {
+        if (state.def) { setupDefense(); state.mode = 'dpre'; }
+        else {
+          if (state.drive > state.maxDrives) { state.mode = 'over'; return; }
+          showPlaybook();
+        }
+      }
+    }
+  }
+
+  particles.update(dt);
+
+  // Smooth Camera Target
+  const focus = getCameraFocus();
+  camera.x += (focus.x - camera.x) * 0.1;
+  camera.y += (focus.y - camera.y) * 0.1;
+
+  const wr = a => Math.atan2(Math.sin(a), Math.cos(a));
+  if (m === 'flight') camera.yaw += wr(Math.atan2(Entities.ball.x - camera.x, Entities.ball.y - camera.y) - camera.yaw) * Math.min(1, dt * 4);
+  else if (m === 'run' || m === 'pre' || m === 'dpre') camera.yaw += wr(-camera.yaw) * Math.min(1, dt * 3);
+}
+
+/* ==========================================================================
+   3D RENDERING SYSTEM (PERSPECTIVE PROJECTION)
+   ========================================================================== */
+const NEAR = 0.5;
+
+function transformPoint(x, y, z) {
+  const dx = x - camera.x, dy = y - camera.y;
+  const sinY = Math.sin(camera.yaw), cosY = Math.cos(camera.yaw);
+  return {
+    l: dx * cosY - dy * sinY,
+    d: dx * sinY + dy * cosY,
+    h: z - camera.z
+  };
+}
+
+function projectPoint(p) {
+  const shakeX = state.shake > 0 ? (Math.random() - 0.5) * 12 * state.shake : 0;
+  const shakeY = state.shake > 0 ? (Math.random() - 0.5) * 12 * state.shake : 0;
+  return [
+    W / 2 + (FOC * p.l / p.d) + shakeX,
+    HOR - (FOC * p.h / p.d) + shakeY
+  ];
+}
+
+function drawLine3D(a, b, col, width) {
+  let p = transformPoint(a[0], a[1], a[2] || 0), q = transformPoint(b[0], b[1], b[2] || 0);
+  if (p.d < NEAR && q.d < NEAR) return;
+  if (p.d < NEAR) {
+    const t = (NEAR - p.d) / (q.d - p.d);
+    p = { l: p.l + (q.l - p.l) * t, d: NEAR, h: p.h + (q.h - p.h) * t };
+  } else if (q.d < NEAR) {
+    const t = (NEAR - q.d) / (p.d - q.d);
+    q = { l: q.l + (p.l - q.l) * t, d: NEAR, h: q.h + (p.h - q.h) * t };
+  }
+  const A = projectPoint(p), B = projectPoint(q);
+  ctx.strokeStyle = col; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+}
+
+function drawQuad3D(y0, y1, col) {
+  const pts = [[0, y0], [53.3, y0], [53.3, y1], [0, y1]].map(p => transformPoint(p[0], p[1], 0));
+  const out = [];
+  for (let i = 0; i < 4; i++) {
+    const p = pts[i], q = pts[(i + 1) % 4];
+    if (p.d >= NEAR) out.push(p);
+    if ((p.d >= NEAR) !== (q.d >= NEAR)) {
+      const t = (NEAR - p.d) / (q.d - p.d);
+      out.push({ l: p.l + (q.l - p.l) * t, d: NEAR, h: p.h + (q.h - p.h) * t });
+    }
+  }
+  if (out.length < 3) return;
+  ctx.fillStyle = col; ctx.beginPath();
+  out.forEach((p, i) => { const s = projectPoint(p); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); });
+  ctx.fill();
+}
+
+function renderField() {
+  // Stadium Sky & Horizon
+  const skyGradient = ctx.createLinearGradient(0, 0, 0, HOR);
+  skyGradient.addColorStop(0, '#0a1526'); skyGradient.addColorStop(1, '#1e385c');
+  ctx.fillStyle = skyGradient; ctx.fillRect(0, 0, W, HOR);
+
+  // Crowd Stands
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(0, HOR - 35, W, 35);
+  for (let i = 0; i < 120; i++) {
+    ctx.fillStyle = `hsl(${(i * 47) % 360}, 60%, 55%)`;
+    ctx.fillRect(i * 4.2 + ((i * 7) % 3), HOR - 30 + ((i * 11) % 26), 2.5, 2.5);
+  }
+
+  // Turf Base
+  ctx.fillStyle = '#11381b'; ctx.fillRect(0, HOR, W, H - HOR);
+
+  // Yard Striping Patterns
+  const bands = []; for (let y = -10; y < 110; y += 5) bands.push(y);
+  bands.sort((a, b) => transformPoint(CX, b + 2.5, 0).d - transformPoint(CX, a + 2.5, 0).d);
+  for (const y of bands) {
+    drawQuad3D(y, y + 5.0, y < 0 ? '#1e3a8a' : y >= 100 ? '#881337' : (((y / 5) & 1) ? '#1f5e2e' : '#195026'));
+  }
+
+  // Yard Lines
+  for (let y = 0; y <= 100; y += 5) drawLine3D([0, y], [53.3, y], 'rgba(255,255,255,0.85)', y % 10 ? 1.5 : 3.0);
+  drawLine3D([0, -10], [0, 110], '#fff', 3.5); drawLine3D([53.3, -10], [53.3, 110], '#fff', 3.5);
+
+  // Line of Scrimmage & First Down Marker Lines
+  const DL = Entities.def && state.def ? state.def : null;
+  const losY = DL ? DL.los : state.los, firstY = DL ? DL.first : state.first;
+  drawLine3D([0, losY], [53.3, losY], DL ? '#ef4444' : '#2563eb', 4);
+  if (firstY <= 100) drawLine3D([0, firstY], [53.3, firstY], '#f5c542', 4);
+
+  // Numbers on Field
+  ctx.textAlign = 'center';
+  for (let y = 10; y <= 90; y += 10) {
+    for (const x of [10, 43.3]) {
+      const p = transformPoint(x, y, 0);
+      if (p.d > 3) {
+        const s = projectPoint(p), scale = Math.min(5
